@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Mejorada</title>
+    <link rel="icon" href="https://png.pngtree.com/png-clipart/20220603/original/pngtree-calculator-icon-illustration-png-image_7901950.png" type="image/png">
+    <style>
+        body, .calculator { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f2f2f2; }
+        .calculator { background-color: #00ff00; padding: 15px; border-radius: 10px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); }
+        .display { width: 180px; height: 40px; margin-bottom: 8px; text-align: right; font-size: 20px; padding: 8px; border-radius: 5px; background-color: #f1f1f1; }
+        .buttons { display: grid; grid-template-columns: repeat(4, 50px); grid-gap: 8px; }
+        button { font-size: 16px; padding: 15px; cursor: pointer; border: none; border-radius: 5px; background-color: #f1f1f1; transition: background-color 0.3s; }
+        button:hover { background-color: #ddd; }
+        .name { position: absolute; top: 10px; right: 10px; font-size: 14px; font-weight: bold; color: #333; }
+        .version { position: absolute; bottom: 10px; left: 10px; font-size: 12px; color: #333; }
+        .history { margin-top: 15px; padding: 10px; background-color: #eee; border-radius: 5px; }
+        .history ul { list-style: none; padding: 0; }
+        .history li { padding: 5px 0; }
+        body.light { background-color: white; color: black; }
+        .calculator.light { background-color: #f4f4f4; }
+        button.light { background-color: #fff; color: #333; }
+        body.dark { background-color: #121212; color: white; }
+        .calculator.dark { background-color: #333; }
+        button.dark { background-color: #555; color: white; }
+    </style>
+</head>
+<body class="light">
+
+    <!-- Pantalla de Login / Registro -->
+    <div id="auth-container" style="display: flex; flex-direction: column; align-items: center;">
+        <h2>Iniciar sesión / Registrarse</h2>
+        <input type="text" id="username" placeholder="Nombre de usuario">
+        <input type="password" id="password" placeholder="Contraseña">
+        <button onclick="login()">Iniciar sesión</button>
+        <button onclick="register()">Registrar cuenta</button>
+    </div>
+
+    <!-- Calculadora -->
+    <div class="calculator light" style="display: none;">
+        <div class="name">Saad</div> <!-- Aquí va tu nombre -->
+        <div class="version">Versión 2.0</div> <!-- Aquí va la versión -->
+
+        <input type="text" id="display" class="display" disabled>
+        <div class="buttons">
+            <button onclick="appendToDisplay('7')">7</button><button onclick="appendToDisplay('8')">8</button><button onclick="appendToDisplay('9')">9</button><button onclick="appendToDisplay('/')">/</button>
+            <button onclick="appendToDisplay('4')">4</button><button onclick="appendToDisplay('5')">5</button><button onclick="appendToDisplay('6')">6</button><button onclick="appendToDisplay('*')">*</button>
+            <button onclick="appendToDisplay('1')">1</button><button onclick="appendToDisplay('2')">2</button><button onclick="appendToDisplay('3')">3</button><button onclick="appendToDisplay('-')">-</button>
+            <button onclick="appendToDisplay('0')">0</button><button onclick="appendToDisplay('.')">.</button><button onclick="clearDisplay()">C</button><button onclick="appendToDisplay('+')">+</button>
+            <button onclick="calculateSquareRoot()">√</button><button onclick="appendToDisplay('**')">^</button><button onclick="calculatePercentage()">%</button><button onclick="calculateResult()" class="equal-button">=</button>
+            <button onclick="calculateTrig('sin')">sin</button><button onclick="calculateTrig('cos')">cos</button><button onclick="calculateTrig('tan')">tan</button>
+        </div>
+
+        <div>
+            <button onclick="changeTheme('light')">🌞 Tema Claro</button>
+            <button onclick="changeTheme('dark')">🌙 Tema Oscuro</button>
+            <button onclick="clearHistory()">🗑️ Borrar Historial</button>
+            <button onclick="logout()">🚪 Cerrar sesión</button>
+        </div>
+
+        <div class="history">
+            <h3>Historial</h3>
+            <ul id="history-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        window.onload = function () {
+            loadThemePreference();
+            const savedUser = localStorage.getItem('currentUser');
+            savedUser ? (currentUser = JSON.parse(savedUser), showCalculator(), updateHistory()) : showAuthScreen();
+        };
+
+        function showAuthScreen() {
+            document.getElementById('auth-container').style.display = 'flex';
+            document.querySelector('.calculator').style.display = 'none';
+        }
+
+        function showCalculator() {
+            document.getElementById('auth-container').style.display = 'none';
+            document.querySelector('.calculator').style.display = 'block';
+        }
+
+        function register() {
+            const username = document.getElementById('username').value, password = document.getElementById('password').value;
+            if (username && password) {
+                const users = JSON.parse(localStorage.getItem('users')) || [], userExists = users.some(user => user.username === username);
+                if (!userExists) {
+                    users.push({ username, password: btoa(password), history: [] });
+                    localStorage.setItem('users', JSON.stringify(users));
+                    alert('Cuenta registrada con éxito');
+                    login();
+                } else alert('El nombre de usuario ya existe');
+            } else alert('Por favor, complete todos los campos');
+        }
+
+        function login() {
+            const username = document.getElementById('username').value, password = document.getElementById('password').value;
+            const users = JSON.parse(localStorage.getItem('users')) || [], user = users.find(user => user.username === username && user.password === btoa(password));
+            if (user) {
+                currentUser = user;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                showCalculator();
+                updateHistory();
+            } else alert('Usuario o contraseña incorrectos');
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            showAuthScreen();
+        }
+
+        function updateHistory() {
+            const historyList = document.getElementById('history-list');
+            historyList.innerHTML = '';
+            if (currentUser && currentUser.history.length > 0) {
+                currentUser.history.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    historyList.appendChild(li);
+                });
+            }
+        }
+
+        function appendToDisplay(value) {
+            const display = document.getElementById('display');
+            if (/[0-9+\-*/.%^]/.test(value)) display.value += value;
+        }
+
+        function clearDisplay() {
+            document.getElementById('display').value = '';
+        }
+
+        function calculateResult() {
+            try {
+                let expression = document.getElementById('display').value.replace(/\^/g, '**');
+                let result = eval(expression);
+                document.getElementById('display').value = result;
+                if (currentUser) {
+                    currentUser.history.push(${expression} = ${result});
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    updateHistory();
+                }
+            } catch {
+                document.getElementById('display').value = 'Error';
+            }
+        }
+
+        function calculateSquareRoot() {
+            const displayValue = document.getElementById('display').value;
+            if (displayValue !== '' && !isNaN(displayValue)) {
+                const result = Math.sqrt(parseFloat(displayValue));
+                document.getElementById('display').value = result;
+                if (currentUser) {
+                    currentUser.history.push(√${displayValue} = ${result});
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    updateHistory();
+                }
+            } else document.getElementById('display').value = 'Error';
+        }
+
+        function calculatePercentage() {
+            const displayValue = document.getElementById('display').value;
+            if (displayValue !== '' && !isNaN(displayValue)) {
+                const result = parseFloat(displayValue) / 100;
+                document.getElementById('display').value = result;
+                if (currentUser) {
+                    currentUser.history.push(${displayValue}% = ${result});
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    updateHistory();
+                }
+            } else document.getElementById('display').value = 'Error';
+        }
+
+        function calculateTrig(operation) {
+            const input = document.getElementById('display').value;
+            const value = parseFloat(input);
+            if (!isNaN(value)) {
+                let result;
+                if (operation === 'sin') result = Math.sin(value);
+                if (operation === 'cos') result = Math.cos(value);
+                if (operation === 'tan') result = Math.tan(value);
+                document.getElementById('display').value = result;
+                if (currentUser) {
+                    currentUser.history.push(${operation}(${value}) = ${result});
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    updateHistory();
+                }
+            } else document.getElementById('display').value = 'Error';
+        }
+
+        function changeTheme(theme) {
+            document.body.className = theme;
+            document.querySelector('.calculator').className = calculator ${theme};
+            localStorage.setItem('theme', theme);
+        }
+
+        function loadThemePreference() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            changeTheme(savedTheme);
+        }
+
+        function clearHistory() {
+            if (currentUser) {
+                currentUser.history = [];
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateHistory();
+            }
+        }
+    </script>
+</body>
+</html>
